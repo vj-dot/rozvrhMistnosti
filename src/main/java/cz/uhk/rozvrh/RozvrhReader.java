@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import cz.uhk.rozvrh.objects.Budova;
 import cz.uhk.rozvrh.objects.RozvrhovaAkce;
 
 import java.io.InputStreamReader;
@@ -52,4 +53,20 @@ public class RozvrhReader {
 
         return filteredAkceList;
     }
+
+    public List<Budova> readBudovy() throws Exception {
+        String jsonUrl = "https://stag-demo.uhk.cz/ws/services/rest2/mistnost/getBudovy?outputFormat=JSON";
+
+        HttpURLConnection connection = (HttpURLConnection) new URL(jsonUrl).openConnection();
+        connection.setRequestMethod("GET");
+        InputStreamReader reader = new InputStreamReader(connection.getInputStream(), "UTF-8");
+
+        Gson gson = new GsonBuilder().create();
+        JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+        Type listType = new TypeToken<List<Budova>>() {}.getType();
+        List<Budova> budovyList = gson.fromJson(root.get("items"), listType);
+
+        return budovyList;
+    }
+
 }

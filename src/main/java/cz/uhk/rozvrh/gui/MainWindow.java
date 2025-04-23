@@ -1,6 +1,7 @@
 package cz.uhk.rozvrh.gui;
 
 import cz.uhk.rozvrh.RozvrhReader;
+import cz.uhk.rozvrh.objects.Budova;
 import cz.uhk.rozvrh.objects.RozvrhovaAkce;
 
 import javax.swing.*;
@@ -35,6 +36,22 @@ public class MainWindow extends JFrame {
 
         setSize(1000, 700);
         setLocationRelativeTo(null);
+        try {
+            RozvrhReader reader = new RozvrhReader();
+            List<Budova> budovy = reader.readBudovy();
+            comboBudova.removeAllItems();
+            for (Budova b : budovy) {
+                if (b.zkrBudovy != null && b.gpsBudovaX != null) {
+                    comboBudova.addItem(b.zkrBudovy);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Chyba při načítání budov: " + e.getMessage(),
+                    "Chyba", JOptionPane.ERROR_MESSAGE);
+        }
+
     }
 
     private void initUI() {
@@ -76,7 +93,23 @@ public class MainWindow extends JFrame {
         scrollPane.setBorder(BorderFactory.createTitledBorder("Rozvrhové akce"));
         add(scrollPane, BorderLayout.CENTER);
 
+        comboBudova.addActionListener(e -> aktualizujMistnosti());
         buttonHledat.addActionListener(e -> nactiData());
+    }
+
+    private void aktualizujMistnosti() {
+        String budova = (String) comboBudova.getSelectedItem();
+        String[] mistnosti;
+
+        if ("J".equals(budova)) {
+            mistnosti = new String[]{"J1", "J2", "J3"};
+        } else if ("H".equals(budova)) {
+            mistnosti = new String[]{"H1", "H2", "H3"};
+        } else {
+            mistnosti = new String[]{"B1", "B2", "B3"};
+        }
+
+        comboMistnost.setModel(new DefaultComboBoxModel<>(mistnosti));
     }
 
 
