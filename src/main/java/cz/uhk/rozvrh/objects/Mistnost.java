@@ -1,22 +1,28 @@
 package cz.uhk.rozvrh.objects;
 
 public class Mistnost {
-    String cislo;
-    String budova;
+    String cisloMistnosti;
+    String zkrBudovy;
+    String typ;
 
-    public String getCislo() {
-        return cislo;
+    public String getCisloMistnosti() {
+        return cisloMistnosti;
     }
 
-    public String getBudova() {
-        return budova;
+    public String getZkrBudovy() {
+        return zkrBudovy;
+    }
+
+    public String getTyp() {
+        return typ;
     }
 
     @Override
     public String toString() {
         return "Mistnost{" +
-                "cislo='" + cislo + '\'' +
-                ", budova='" + budova + '\'' +
+                "cisloMistnosti='" + cisloMistnosti + '\'' +
+                ", zkrBudovy='" + zkrBudovy + '\'' +
+                ", typ='" + typ + '\'' +
                 '}';
     }
 }

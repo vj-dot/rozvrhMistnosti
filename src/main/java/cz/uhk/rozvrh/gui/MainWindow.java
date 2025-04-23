@@ -1,13 +1,14 @@
 package cz.uhk.rozvrh.gui;
 
 import cz.uhk.rozvrh.RozvrhReader;
-import cz.uhk.rozvrh.objects.Budova;
+import cz.uhk.rozvrh.objects.Mistnost;
 import cz.uhk.rozvrh.objects.RozvrhovaAkce;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.*;
 import java.util.List;
 
 public class MainWindow extends JFrame {
@@ -19,6 +20,8 @@ public class MainWindow extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     ImageIcon img = new ImageIcon("src/main/resources/VJ.png");
+
+    private List<Mistnost> mistnosti;
 
     public MainWindow() {
         super("Rozvrhové hodiny");
@@ -37,14 +40,7 @@ public class MainWindow extends JFrame {
         setSize(1000, 700);
         setLocationRelativeTo(null);
         try {
-            RozvrhReader reader = new RozvrhReader();
-            List<Budova> budovy = reader.readBudovy();
-            comboBudova.removeAllItems();
-            for (Budova b : budovy) {
-                if (b.zkrBudovy != null && b.gpsBudovaX != null) {
-                    comboBudova.addItem(b.zkrBudovy);
-                }
-            }
+            nactiBudovy();
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
@@ -62,7 +58,7 @@ public class MainWindow extends JFrame {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
         comboSemestr = createStyledComboBox(new String[]{"ZS", "LS"});
-        comboBudova = createStyledComboBox(new String[]{"J", "H", "B"});
+        comboBudova = createStyledComboBox(new String[]{});
         comboMistnost = createStyledComboBox(new String[]{"J1", "J2", "J3"});
 
         buttonHledat = new JButton("Hledat");
@@ -96,22 +92,6 @@ public class MainWindow extends JFrame {
         comboBudova.addActionListener(e -> aktualizujMistnosti());
         buttonHledat.addActionListener(e -> nactiData());
     }
-
-    private void aktualizujMistnosti() {
-        String budova = (String) comboBudova.getSelectedItem();
-        String[] mistnosti;
-
-        if ("J".equals(budova)) {
-            mistnosti = new String[]{"J1", "J2", "J3"};
-        } else if ("H".equals(budova)) {
-            mistnosti = new String[]{"H1", "H2", "H3"};
-        } else {
-            mistnosti = new String[]{"B1", "B2", "B3"};
-        }
-
-        comboMistnost.setModel(new DefaultComboBoxModel<>(mistnosti));
-    }
-
 
     private JComboBox<String> createStyledComboBox(String[] items) {
         JComboBox<String> comboBox = new JComboBox<>(items);
@@ -188,5 +168,45 @@ public class MainWindow extends JFrame {
                     "Chyba při načítání dat: " + e.getMessage(),
                     "Chyba", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void nactiBudovy() throws Exception {
+        RozvrhReader reader = new RozvrhReader();
+        mistnosti = reader.readMistnosti();
+
+        Set<String> budovy = new HashSet<>();
+        for (Mistnost mistnost : mistnosti) {
+            if (mistnost.getZkrBudovy() != null && !mistnost.getZkrBudovy().isEmpty() && mistnost.getTyp().equals("Učebna")) {
+                budovy.add(mistnost.getZkrBudovy());
+            }
+        }
+        List<String> budovyList = new ArrayList<>(budovy);
+        Collections.sort(budovyList);
+
+        comboBudova.removeAllItems();
+        for (String budova : budovyList) {
+            comboBudova.addItem(budova);
+        }
+
+        aktualizujMistnosti();
+    }
+
+    private void aktualizujMistnosti() {
+        String budova = (String) comboBudova.getSelectedItem();
+        List<Mistnost> filtrovaneMistnosti = new ArrayList<>();
+
+        for (Mistnost m : mistnosti) {
+            if (budova != null && budova.equals(m.getZkrBudovy()) && m.getTyp().equals("Učebna")) {
+                filtrovaneMistnosti.add(m);
+            }
+        }
+
+        List<String> mistnostiProBudovu = new ArrayList<>();
+        for (Mistnost m : filtrovaneMistnosti) {
+            mistnostiProBudovu.add(m.getCisloMistnosti());
+        }
+
+        Collections.sort(mistnostiProBudovu);
+        comboMistnost.setModel(new DefaultComboBoxModel<>(mistnostiProBudovu.toArray(new String[0])));
     }
 }
