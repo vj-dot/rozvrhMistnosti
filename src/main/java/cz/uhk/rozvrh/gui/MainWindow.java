@@ -17,10 +17,12 @@ public class MainWindow extends JFrame {
     private JButton buttonHledat;
     private JTable table;
     private DefaultTableModel tableModel;
+    ImageIcon img = new ImageIcon("src/main/resources/VJ.png");
 
     public MainWindow() {
         super("Rozvrhové hodiny");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setIconImage(img.getImage());
 
         // Pro lepsi vzhled GUI
         try {
@@ -28,8 +30,6 @@ public class MainWindow extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        nactiData();
 
         initUI();
 
@@ -122,7 +122,10 @@ public class MainWindow extends JFrame {
     private void nactiData() {
         try {
             RozvrhReader reader = new RozvrhReader();
-            List<RozvrhovaAkce> akceList = reader.readRozvrh();
+            String semestr = (String) comboSemestr.getSelectedItem();
+            String budova = (String) comboBudova.getSelectedItem();
+            String mistnost = (String) comboMistnost.getSelectedItem();
+            List<RozvrhovaAkce> akceList = reader.readRozvrh(semestr, budova, mistnost);
 
             SwingUtilities.invokeLater(() -> {
                 tableModel.setRowCount(0); // vymazani dat z tabulky

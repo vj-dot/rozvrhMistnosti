@@ -16,8 +16,18 @@ import java.util.List;
 
 public class RozvrhReader {
 
-    public List<RozvrhovaAkce> readRozvrh() throws Exception {
-        String jsonUrl = "https://stag-demo.uhk.cz/ws/services/rest2/rozvrhy/getRozvrhByMistnost?semestr=%25&budova=J&mistnost=J9&outputFormat=JSON";
+    public List<RozvrhovaAkce> readRozvrh(String semestr, String budova, String mistnost) throws Exception {
+        String jsonUrl = "https://stag-demo.uhk.cz/ws/services/rest2/rozvrhy/getRozvrhByMistnost?outputFormat=JSON";
+
+        if (semestr != null) {
+            jsonUrl += "&semestr=" + semestr;
+        }
+        if (budova != null) {
+            jsonUrl += "&budova=" + budova;
+        }
+        if (mistnost != null) {
+            jsonUrl += "&mistnost=" + mistnost;
+        }
 
         HttpURLConnection connection = (HttpURLConnection) new URL(jsonUrl).openConnection();
         connection.setRequestMethod("GET");
