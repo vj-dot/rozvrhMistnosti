@@ -6,7 +6,6 @@ import cz.uhk.rozvrh.objects.RozvrhovaAkce;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
@@ -17,18 +16,20 @@ public class MainWindow extends JFrame {
     private JComboBox<String> comboBudova;
     private JComboBox<String> comboMistnost;
     private JButton buttonHledat;
+    private JButton buttonRozvrh;
     private JTable table;
-    private DefaultTableModel tableModel;
+    private RozvrhTableModel tableModel;
     ImageIcon img = new ImageIcon("src/main/resources/VJ.png");
 
     private List<Mistnost> mistnosti;
+    private List<RozvrhovaAkce> akceList;
 
     public MainWindow() {
         super("Rozvrhové hodiny");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setIconImage(img.getImage());
 
-        // Pro lepsi vzhled GUI
+        // lepsi vzhled GUI
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
@@ -63,6 +64,8 @@ public class MainWindow extends JFrame {
 
         buttonHledat = new JButton("Hledat");
         styleButton(buttonHledat);
+        buttonRozvrh = new JButton("Rozvrh");
+        styleButton(buttonRozvrh);
 
         topPanel.add(new JLabel("Semestr:"));
         topPanel.add(comboSemestr);
@@ -71,16 +74,12 @@ public class MainWindow extends JFrame {
         topPanel.add(new JLabel("Místnost:"));
         topPanel.add(comboMistnost);
         topPanel.add(buttonHledat);
+        topPanel.add(buttonRozvrh);
 
         add(topPanel, BorderLayout.NORTH);
 
         // tabulka
-        tableModel = new DefaultTableModel(new String[]{"Předmět", "Název", "Typ akce", "Učitel", "Den", "Od", "Do"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        tableModel = new RozvrhTableModel();
 
         table = new JTable(tableModel);
         styleTable(table);
@@ -91,6 +90,7 @@ public class MainWindow extends JFrame {
 
         comboBudova.addActionListener(e -> aktualizujMistnosti());
         buttonHledat.addActionListener(e -> nactiData());
+        buttonRozvrh.addActionListener(e -> otevriRozvrhDialog());
     }
 
     private JComboBox<String> createStyledComboBox(String[] items) {
@@ -138,23 +138,10 @@ public class MainWindow extends JFrame {
             String semestr = (String) comboSemestr.getSelectedItem();
             String budova = (String) comboBudova.getSelectedItem();
             String mistnost = (String) comboMistnost.getSelectedItem();
-            List<RozvrhovaAkce> akceList = reader.readRozvrh(semestr, budova, mistnost);
+            akceList = reader.readRozvrh(semestr, budova, mistnost);
 
             SwingUtilities.invokeLater(() -> {
-                tableModel.setRowCount(0); // vymazani dat z tabulky
-
-                for (RozvrhovaAkce akce : akceList) {
-                    tableModel.addRow(new Object[]{
-                            akce.predmet,
-                            akce.nazev,
-                            akce.typAkce,
-                            akce.ucitel,
-                            akce.den,
-                            akce.hodinaSkutOd,
-                            akce.hodinaSkutDo
-                    });
-                    System.out.println(akce);
-                }
+                tableModel.setList(akceList);
 
                 if (akceList.isEmpty()) {
                     JOptionPane.showMessageDialog(this,
@@ -206,7 +193,111 @@ public class MainWindow extends JFrame {
             mistnostiProBudovu.add(m.getCisloMistnosti());
         }
 
-        Collections.sort(mistnostiProBudovu);
+        mistnostiProBudovu.sort((a, b) -> {
+            // rozdeleni Stringu na pismeno a cislo
+            String[] partsA = a.split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)");
+            String[] partsB = b.split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)");
+
+            // nejdriv se porovnaji pismena, pak kdyz jsou stejna tak cisla
+            int result = partsA[0].compareTo(partsB[0]);
+            if (result == 0 && partsA.length > 1 && partsB.length > 1) {
+                Integer numA = Integer.parseInt(partsA[1]);
+                Integer numB = Integer.parseInt(partsB[1]);
+                return numA.compareTo(numB);
+            }
+            return result;
+        });
+
         comboMistnost.setModel(new DefaultComboBoxModel<>(mistnostiProBudovu.toArray(new String[0])));
     }
+
+    private void otevriRozvrhDialog() {
+        try {
+            if (akceList == null || akceList.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Nejdříve vyhledejte rozvrhové akce.",
+                        "Informace", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            nactiRozvrh();
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Chyba při načítání rozvrhu: " + e.getMessage(),
+                    "Chyba", JOptionPane.ERROR_MESSAGE);
+        }
+
+    }
+
+    private void nactiRozvrh() {
+        String title = "Rozvrh - " + (String) comboSemestr.getSelectedItem() + " - " + (String) comboBudova.getSelectedItem() + " - " + (String) comboMistnost.getSelectedItem();
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setSize(1400, 600);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        String[] hodiny = {"07:25", "08:15", "09:05", "09:55", "10:45", "11:35", "12:25", "13:15", "14:05", "14:55", "15:45", "16:35", "17:25", "18:15", "19:05", "19:55"};
+        String[] dny = {"Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota"};
+
+        JPanel schedulePanel = new JPanel(new GridLayout(dny.length + 1, hodiny.length + 1, 0, 0));
+        schedulePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        schedulePanel.add(new JLabel("Den/Hodina"));
+        for (String hodina : hodiny) {
+            schedulePanel.add(new JLabel(hodina , SwingConstants.CENTER));
+        }
+
+        Map<String, Map<String, JLabel>> cellMap = new HashMap<>(); // pod kazdym dnem je mapa hodin a bunek
+        for (String den : dny) {
+            schedulePanel.add(new JLabel(den, SwingConstants.CENTER));
+
+            for (String hodina : hodiny) {
+                JLabel cell = new JLabel("");
+                cell.setPreferredSize(new Dimension(75, 20));
+                cell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                schedulePanel.add(cell);
+
+                if (!cellMap.containsKey(den)) {
+                    cellMap.put(den, new HashMap<>());
+                }
+                cellMap.get(den).put(hodina, cell);
+
+//                for (RozvrhovaAkce akce : akceList) {
+//                    if (akce.den.equals(den) && akce.hodinaSkutOd.toString().equals(hodina)) {
+//                        cell.setText(akce.predmet);
+//                        cell.setHorizontalAlignment(SwingConstants.CENTER);
+//                        cell.setBackground(Color.LIGHT_GRAY);
+//                        cell.setOpaque(true);
+//                    }
+//                }
+            }
+        }
+
+        for (RozvrhovaAkce akce : akceList) {
+            String den = akce.den;
+            String hodinaOd = akce.hodinaSkutOd.toString();
+            String typAkce = akce.typAkce;
+
+            System.out.println("Akce: " + akce.predmet + ", Den: " + akce.den + ", Hodina od: " + akce.hodinaSkutOd + ", do: " + akce.hodinaSkutDo);
+
+            if (cellMap.containsKey(den) && cellMap.get(den).containsKey(hodinaOd)) {
+                JLabel cell = cellMap.get(den).get(hodinaOd);
+                cell.setText(akce.predmet);
+                cell.setHorizontalAlignment(SwingConstants.CENTER);
+                cell.setOpaque(true);
+
+                if ("Cvičení".equals(typAkce)) {
+                    cell.setBackground(new Color(208, 255, 255));
+                } else if ("Přednáška".equals(typAkce)) {
+                    cell.setBackground(new Color(228, 255, 222));
+                }
+            }
+        }
+
+        JScrollPane scrollPane = new JScrollPane(schedulePanel);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+
+        dialog.setVisible(true);
+    }
+
 }
