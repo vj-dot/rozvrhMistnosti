@@ -232,69 +232,25 @@ public class MainWindow extends JFrame {
     private void nactiRozvrh() {
         String title = "Rozvrh - " + (String) comboSemestr.getSelectedItem() + " - " + (String) comboBudova.getSelectedItem() + " - " + (String) comboMistnost.getSelectedItem();
         JDialog dialog = new JDialog(this, title, true);
-        dialog.setSize(1400, 600);
+        dialog.setSize(1400, 400);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
         String[] hodiny = {"07:25", "08:15", "09:05", "09:55", "10:45", "11:35", "12:25", "13:15", "14:05", "14:55", "15:45", "16:35", "17:25", "18:15", "19:05", "19:55"};
         String[] dny = {"Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota"};
+        JLabel[][] cellLabels = new JLabel[dny.length][hodiny.length];
 
-        JPanel schedulePanel = new JPanel(new GridLayout(dny.length + 1, hodiny.length + 1, 0, 0));
-        schedulePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        ScheduleTableModel model = new ScheduleTableModel(dny, hodiny, akceList);
+        JTable table = new JTable(model);
 
-        schedulePanel.add(new JLabel("Den/Hodina"));
-        for (String hodina : hodiny) {
-            schedulePanel.add(new JLabel(hodina , SwingConstants.CENTER));
-        }
+        table.setRowHeight(40);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.setShowGrid(true);
+        table.setSelectionBackground(new Color(220, 240, 255));
+        table.setSelectionForeground(Color.BLACK);
+        table.setFillsViewportHeight(false);
 
-        Map<String, Map<String, JLabel>> cellMap = new HashMap<>(); // pod kazdym dnem je mapa hodin a bunek
-        for (String den : dny) {
-            schedulePanel.add(new JLabel(den, SwingConstants.CENTER));
-
-            for (String hodina : hodiny) {
-                JLabel cell = new JLabel("");
-                cell.setPreferredSize(new Dimension(75, 20));
-                cell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-                schedulePanel.add(cell);
-
-                if (!cellMap.containsKey(den)) {
-                    cellMap.put(den, new HashMap<>());
-                }
-                cellMap.get(den).put(hodina, cell);
-
-//                for (RozvrhovaAkce akce : akceList) {
-//                    if (akce.den.equals(den) && akce.hodinaSkutOd.toString().equals(hodina)) {
-//                        cell.setText(akce.predmet);
-//                        cell.setHorizontalAlignment(SwingConstants.CENTER);
-//                        cell.setBackground(Color.LIGHT_GRAY);
-//                        cell.setOpaque(true);
-//                    }
-//                }
-            }
-        }
-
-        for (RozvrhovaAkce akce : akceList) {
-            String den = akce.den;
-            String hodinaOd = akce.hodinaSkutOd.toString();
-            String typAkce = akce.typAkce;
-
-            System.out.println("Akce: " + akce.predmet + ", Den: " + akce.den + ", Hodina od: " + akce.hodinaSkutOd + ", do: " + akce.hodinaSkutDo);
-
-            if (cellMap.containsKey(den) && cellMap.get(den).containsKey(hodinaOd)) {
-                JLabel cell = cellMap.get(den).get(hodinaOd);
-                cell.setText(akce.predmet);
-                cell.setHorizontalAlignment(SwingConstants.CENTER);
-                cell.setOpaque(true);
-
-                if ("Cvičení".equals(typAkce)) {
-                    cell.setBackground(new Color(208, 255, 255));
-                } else if ("Přednáška".equals(typAkce)) {
-                    cell.setBackground(new Color(228, 255, 222));
-                }
-            }
-        }
-
-        JScrollPane scrollPane = new JScrollPane(schedulePanel);
+        JScrollPane scrollPane = new JScrollPane(table);
         dialog.add(scrollPane, BorderLayout.CENTER);
 
         dialog.setVisible(true);

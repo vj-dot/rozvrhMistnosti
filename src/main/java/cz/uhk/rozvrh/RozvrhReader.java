@@ -46,7 +46,7 @@ public class RozvrhReader {
 
         List<RozvrhovaAkce> filteredAkceList = new ArrayList<>();
         for (RozvrhovaAkce akce : akceList) {
-            if ("Cvičení".equals(akce.typAkce) || "Přednáška".equals(akce.typAkce)) {
+            if ("Cvičení".equals(akce.typAkce) || "Přednáška".equals(akce.typAkce) || "Seminář".equals(akce.typAkce)) {
                 filteredAkceList.add(akce);
             }
         }
